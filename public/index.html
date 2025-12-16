@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Short Rust - URL Shortener</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            padding: 40px;
+            max-width: 600px;
+            width: 100%;
+        }
+
+        .logo {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .logo h1 {
+            color: #667eea;
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+
+        .logo p {
+            color: #666;
+            font-size: 1.1em;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            color: #333;
+            font-weight: 500;
+        }
+
+        input[type="text"],
+        input[type="url"] {
+            width: 100%;
+            padding: 12px 16px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: border-color 0.3s;
+        }
+
+        input[type="text"]:focus,
+        input[type="url"]:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .optional {
+            color: #999;
+            font-size: 0.9em;
+            font-weight: normal;
+        }
+
+        button {
+            width: 100%;
+            padding: 14px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        button:active {
+            transform: translateY(0);
+        }
+
+        .result {
+            margin-top: 30px;
+            padding: 20px;
+            background: #f5f5f5;
+            border-radius: 8px;
+            display: none;
+        }
+
+        .result.show {
+            display: block;
+        }
+
+        .result h3 {
+            color: #333;
+            margin-bottom: 10px;
+        }
+
+        .short-url {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-top: 10px;
+            width: 100%;
+        }
+
+        .short-url input {
+            flex: 1 1 auto;
+            padding: 10px 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 6px;
+            font-size: 14px;
+            background: white;
+            color: #333;
+            min-width: 200px;
+            max-width: 100%;
+            display: inline-block;
+            box-sizing: border-box;
+        }
+        
+        .short-url input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        
+        .short-url input[readonly] {
+            cursor: text;
+            background-color: #f9f9f9;
+        }
+        
+        .result p {
+            margin-bottom: 10px;
+            color: #666;
+        }
+
+        .copy-btn {
+            padding: 10px 20px;
+            background: #667eea;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            white-space: nowrap;
+        }
+
+        .copy-btn:hover {
+            background: #5568d3;
+        }
+
+        .error {
+            margin-top: 20px;
+            padding: 15px;
+            background: #fee;
+            border: 1px solid #fcc;
+            border-radius: 8px;
+            color: #c33;
+            display: none;
+        }
+
+        .error.show {
+            display: block;
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            margin-top: 20px;
+            color: #667eea;
+        }
+
+        .loading.show {
+            display: block;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="logo">
+            <h1>Short Rust</h1>
+            <p>Quickly generate short links</p>
+        </div>
+
+        <form id="shortenForm">
+            <div class="form-group">
+                <label for="longUrl">Long URL <span style="color: red;">*</span></label>
+                <input type="url" id="longUrl" name="longUrl" placeholder="https://example.com/very/long/url" required>
+            </div>
+
+            <div class="form-group">
+                <label for="shortKey">Custom Short Key <span class="optional">(Optional)</span></label>
+                <input type="text" id="shortKey" name="shortKey" placeholder="Leave blank to auto-generate">
+            </div>
+
+            <button type="submit">Generate Short Link</button>
+        </form>
+
+        <div class="loading" id="loading">Generating...</div>
+
+        <div class="error" id="error"></div>
+
+        <div class="result" id="result">
+            <h3>Short link generated successfully!</h3>
+            <p>Your short link:</p>
+            <div class="short-url">
+                <input type="text" id="shortUrlInput" name="shortUrl" readonly placeholder="Short URL will appear here">
+                <button class="copy-btn" onclick="copyToClipboard()">Copy</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const form = document.getElementById('shortenForm');
+        const result = document.getElementById('result');
+        const error = document.getElementById('error');
+        const loading = document.getElementById('loading');
+        const shortUrlInput = document.getElementById('shortUrlInput');
+
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            // Hide previous results and errors
+            result.classList.remove('show');
+            error.classList.remove('show');
+            loading.classList.add('show');
+
+            const formData = new FormData(form);
+            const data = {
+                longUrl: formData.get('longUrl'),
+                shortKey: formData.get('shortKey') || null
+            };
+
+            try {
+                const response = await fetch('/short', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(data)
+                });
+
+                loading.classList.remove('show');
+
+                if (response.ok) {
+                    const resultData = await response.json();
+                    console.log('Response data:', resultData);
+                    console.log('Response status:', response.status);
+                    console.log('shortUrlInput element:', shortUrlInput);
+                    
+                    // Backend returns { short_url: "/abc123", short_key: "abc123" }
+                    const shortUrl = resultData?.short_url || resultData?.shortUrl;
+                    if (shortUrl) {
+                        const fullShortUrl = window.location.origin + shortUrl;
+                        console.log('Full short URL:', fullShortUrl);
+                        
+                        // Ensure element exists before setting value
+                        const inputElement = document.getElementById('shortUrlInput');
+                        if (inputElement) {
+                            inputElement.value = fullShortUrl;
+                            inputElement.setAttribute('value', fullShortUrl);
+                            inputElement.removeAttribute('placeholder');
+                            console.log('Value set to:', inputElement.value);
+                            console.log('Input element:', inputElement);
+                            console.log('Input element style:', window.getComputedStyle(inputElement));
+                            result.classList.add('show');
+                            
+                            // Force a reflow to ensure the value is displayed
+                            inputElement.offsetHeight;
+                        } else {
+                            console.error('shortUrlInput element not found!');
+                            error.textContent = 'Error: Input element not found';
+                            error.classList.add('show');
+                        }
+                    } else {
+                        console.error('Invalid response format:', resultData);
+                        error.textContent = 'Invalid response format: ' + JSON.stringify(resultData);
+                        error.classList.add('show');
+                    }
+                } else {
+                    const errorText = response.status === 409 
+                        ? 'This short key is already in use, please try another' 
+                        : 'Failed to generate short link, please try again';
+                    error.textContent = errorText;
+                    error.classList.add('show');
+                }
+            } catch (err) {
+                console.error('Request error:', err);
+                loading.classList.remove('show');
+                error.textContent = 'Network error, please check your connection: ' + err.message;
+                error.classList.add('show');
+            }
+        });
+
+        function copyToClipboard() {
+            shortUrlInput.select();
+            document.execCommand('copy');
+            
+            const copyBtn = event.target;
+            const originalText = copyBtn.textContent;
+            copyBtn.textContent = 'Copied!';
+            copyBtn.style.background = '#4caf50';
+            
+            setTimeout(() => {
+                copyBtn.textContent = originalText;
+                copyBtn.style.background = '#667eea';
+            }, 2000);
+        }
+    </script>
+</body>
+</html>
+
