@@ -1,48 +1,40 @@
 # Build stage
 FROM rust:1.83-alpine AS builder
 
+RUN apk add --no-cache musl-dev
+
 WORKDIR /app
 
-# Install dependencies
-RUN apk update && apk add --no-cache \
-    pkg-config \
-    openssl-dev \
-    musl-dev \
-    build-base
-
 # Copy manifests
-COPY Cargo.toml ./
-COPY Cargo.lock* ./
+COPY Cargo.toml Cargo.lock ./
 
-# Copy source code
+# Create dummy main to cache dependencies
+RUN mkdir src && echo "fn main() {}" > src/main.rs
+RUN cargo build --release && rm -rf src
+
+# Copy actual source
 COPY src ./src
 COPY public ./public
 
-# Build for release
-RUN cargo build --release
+# Build the real application
+RUN touch src/main.rs && cargo build --release
 
 # Runtime stage
-FROM alpine:latest AS runtime
+FROM alpine:3.21
 
-WORKDIR /app
+RUN apk add --no-cache ca-certificates tzdata
 
-# Install runtime dependencies
-RUN apk add --no-cache \
-    ca-certificates
-
-# Copy binary from builder
 COPY --from=builder /app/target/release/short-rust /usr/local/bin/short-rust
 
 # Copy public directory
-COPY --from=builder /app/public ./public
+COPY --from=builder /app/public /app/public
 
 # Create data directory
 RUN mkdir -p /app/data
 
-# Expose port
+WORKDIR /app
+
 EXPOSE 3774
 
-# Run the application
 ENTRYPOINT ["short-rust"]
 CMD ["-h", "0.0.0.0", "-p", "3774"]
-
