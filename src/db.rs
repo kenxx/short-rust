@@ -17,15 +17,16 @@ pub struct Cdb64Store {
 
 impl Cdb64Store {
     pub fn new() -> Self {
-        // Use ./data directory for persistent storage
-        let data_dir = PathBuf::from("./data");
-        
-        // Create data directory if it doesn't exist
-        if let Err(e) = create_dir_all(&data_dir) {
-            tracing::warn!("Failed to create data directory: {}", e);
+        Self::with_path(PathBuf::from("./data/short-rust.cdb"))
+    }
+
+    pub fn with_path(db_path: PathBuf) -> Self {
+        // Get parent directory and create it if it doesn't exist
+        if let Some(parent) = db_path.parent() {
+            if let Err(e) = create_dir_all(parent) {
+                tracing::warn!("Failed to create data directory: {}", e);
+            }
         }
-        
-        let db_path = data_dir.join("short-rust.cdb");
         
         // Initialize empty cache
         let write_cache = Arc::new(RwLock::new(HashMap::new()));

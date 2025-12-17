@@ -263,46 +263,34 @@
 
                 loading.classList.remove('show');
 
-                if (response.ok) {
-                    const resultData = await response.json();
-                    console.log('Response data:', resultData);
-                    console.log('Response status:', response.status);
-                    console.log('shortUrlInput element:', shortUrlInput);
+                const resultData = await response.json();
+                console.log('Response data:', resultData);
+                console.log('Response status:', response.status);
+                
+                // Backend returns { Code: 1, ShortUrl: "..." } on success
+                // or { Code: 400/409, Msg: "..." } on error
+                if (resultData.Code === 1 && resultData.ShortUrl) {
+                    const shortUrl = resultData.ShortUrl;
+                    console.log('Short URL:', shortUrl);
                     
-                    // Backend returns { short_url: "/abc123", short_key: "abc123" }
-                    const shortUrl = resultData?.short_url || resultData?.shortUrl;
-                    if (shortUrl) {
-                        const fullShortUrl = window.location.origin + shortUrl;
-                        console.log('Full short URL:', fullShortUrl);
-                        
-                        // Ensure element exists before setting value
-                        const inputElement = document.getElementById('shortUrlInput');
-                        if (inputElement) {
-                            inputElement.value = fullShortUrl;
-                            inputElement.setAttribute('value', fullShortUrl);
-                            inputElement.removeAttribute('placeholder');
-                            console.log('Value set to:', inputElement.value);
-                            console.log('Input element:', inputElement);
-                            console.log('Input element style:', window.getComputedStyle(inputElement));
-                            result.classList.add('show');
-                            
-                            // Force a reflow to ensure the value is displayed
-                            inputElement.offsetHeight;
-                        } else {
-                            console.error('shortUrlInput element not found!');
-                            error.textContent = 'Error: Input element not found';
-                            error.classList.add('show');
-                        }
+                    // Ensure element exists before setting value
+                    const inputElement = document.getElementById('shortUrlInput');
+                    if (inputElement) {
+                        inputElement.value = shortUrl;
+                        inputElement.setAttribute('value', shortUrl);
+                        inputElement.removeAttribute('placeholder');
+                        console.log('Value set to:', inputElement.value);
+                        result.classList.add('show');
                     } else {
-                        console.error('Invalid response format:', resultData);
-                        error.textContent = 'Invalid response format: ' + JSON.stringify(resultData);
+                        console.error('shortUrlInput element not found!');
+                        error.textContent = 'Error: Input element not found';
                         error.classList.add('show');
                     }
                 } else {
-                    const errorText = response.status === 409 
-                        ? 'This short key is already in use, please try another' 
-                        : 'Failed to generate short link, please try again';
-                    error.textContent = errorText;
+                    // Error response: { Code: 400/409, Msg: "..." }
+                    const errorMsg = resultData.Msg || 'Failed to generate short link, please try again';
+                    console.error('Error response:', resultData);
+                    error.textContent = errorMsg;
                     error.classList.add('show');
                 }
             } catch (err) {

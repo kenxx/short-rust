@@ -1,0 +1,13 @@
+target/
+.git/
+.github/
+data/
+*.cdb
+*.tmp
+.DS_Store
+*.swp
+*.swo
+*~
+.vscode/
+.idea/
+

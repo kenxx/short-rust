@@ -1,57 +1,61 @@
-# Short Rust - URL Shortener
+# Short Rust
 
-A URL shortening service built with Rust and Axum framework.
+URL shortening service built with Rust and Axum.
 
 ## Features
 
-- ✅ Convert long URLs to short URLs
-- ✅ Custom short link keys
-- ✅ Redirect short links to original URLs
-- ✅ Beautiful web interface
-- ✅ Generate short links using djb hash (times33) algorithm
+- URL shortening with djb hash (times33) algorithm
+- Collision detection and automatic retry
+- Persistent storage with cdb64
+- Web interface for URL shortening
+- Configurable via CLI arguments or environment variables
 
-## Technology Stack
-
-- **Web Framework**: Axum 0.8
-- **Async Runtime**: Tokio
-- **Serialization**: Serde
-- **Hash Algorithm**: djb hash (times33)
-- **Storage**: In-memory storage (can be extended to cdb64)
-- **Logging**: tracing and tracing-subscriber
-
-## Quick Start
-
-### Install Dependencies
-
-Make sure you have Rust and Cargo installed:
+## Installation
 
 ```bash
-curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
+cargo build --release
 ```
 
-### Run the Project
+## Usage
+
+### Command Line Arguments
 
 ```bash
+cargo run -- \
+  -d ./data/short-rust.cdb \
+  -h 0.0.0.0 \
+  -p 3774 \
+  -u http://short.com \
+  -s ./public
+```
+
+### Environment Variables
+
+```bash
+export SHORT_RUST_DB=./data/short-rust.cdb
+export SHORT_RUST_HOST=0.0.0.0
+export SHORT_RUST_PORT=3774
+export SHORT_RUST_URL=http://short.com
+export SHORT_RUST_STATIC=./public
+
 cargo run
 ```
 
-The server will start at `http://0.0.0.0:3000`.
+### Default Values
 
-### Usage
+- **DB**: `{cwd}/data/short-rust.cdb`
+- **Host**: `0.0.0.0`
+- **Port**: `3774`
+- **URL**: `http://{host}:{port}`
+- **Static**: `{cwd}/public`
 
-1. Visit `http://localhost:3000` to open the web interface
-2. Enter a long URL
-3. Optionally enter a custom short link key
-4. Click "Generate Short Link" button
-5. Copy and use the generated short link
-
-## API Endpoints
+## API
 
 ### POST /short
 
 Generate a short link.
 
-**Request Body**:
+**Request**:
 ```json
 {
   "longUrl": "https://example.com/very/long/url",
@@ -59,40 +63,32 @@ Generate a short link.
 }
 ```
 
-**Response**:
+**Success Response**:
 ```json
 {
-  "short_url": "/abc123",
-  "short_key": "abc123"
+  "Code": 1,
+  "ShortUrl": "http://0.0.0.0:3774/abc123"
+}
+```
+
+**Error Response**:
+```json
+{
+  "Code": 400,
+  "Msg": "Empty URL provided"
 }
 ```
 
 ### GET /{shortKey}
 
-Redirect to the original URL based on the short link key.
+Redirect to the original URL (301 Permanent Redirect).
 
-**Response**: 301 Permanent Redirect to the original URL
+## Technology Stack
 
-## Project Structure
-
-```
-short-rust/
-├── src/
-│   ├── main.rs      # Main application entry point
-│   ├── hash.rs      # djb hash algorithm implementation
-│   └── db.rs        # Database operations module (reserved)
-├── public/
-│   └── index.html   # Web interface
-├── Cargo.toml       # Project configuration
-└── README.md        # Project documentation
-```
-
-## Development Plan
-
-- [ ] Integrate cdb64 database for persistent storage
-- [ ] Add URL expiration functionality
-- [ ] Add access statistics
-- [ ] Add batch URL shortening functionality
+- Axum 0.8
+- Tokio
+- cdb64
+- djb hash (times33)
 
 ## License
 
