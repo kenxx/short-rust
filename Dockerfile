@@ -1,16 +1,17 @@
 # Build stage
-FROM rust:1.75-slim as builder
+FROM rust:1.83-alpine AS builder
 
 WORKDIR /app
 
 # Install dependencies
-RUN apt-get update && apt-get install -y \
+RUN apk add --no-cache \
     pkg-config \
-    libssl-dev \
-    && rm -rf /var/lib/apt/lists/*
+    openssl-dev \
+    musl-dev
 
 # Copy manifests
-COPY Cargo.toml Cargo.lock ./
+COPY Cargo.toml ./
+COPY Cargo.lock* ./
 
 # Copy source code
 COPY src ./src
@@ -20,14 +21,13 @@ COPY public ./public
 RUN cargo build --release
 
 # Runtime stage
-FROM debian:bookworm-slim
+FROM alpine:latest AS runtime
 
 WORKDIR /app
 
 # Install runtime dependencies
-RUN apt-get update && apt-get install -y \
-    ca-certificates \
-    && rm -rf /var/lib/apt/lists/*
+RUN apk add --no-cache \
+    ca-certificates
 
 # Copy binary from builder
 COPY --from=builder /app/target/release/short-rust /usr/local/bin/short-rust
